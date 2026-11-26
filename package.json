@@ -1,0 +1,29 @@
+{
+  "name": "eod-task-management-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env.local server.ts",
+    "start": "tsx --env-file-if-exists=.env.local server.ts",
+    "typecheck": "tsc --noEmit",
+    "jobs:handovers": "tsx --env-file-if-exists=.env.local scripts/run-handovers.ts",
+    "jobs:reports": "tsx --env-file-if-exists=.env.local scripts/run-reports.ts",
+    "test:email": "node --env-file-if-exists=.env.local scripts/test-email.mjs"
+  },
+  "dependencies": {
+    "better-auth": "1.7.23",
+    "express": "^5",
+    "mysql2": "^3.24.6",
+    "nodemailer": "^10.6.0",
+    "tsx": "^4.23.15"
+  },
+  "devDependencies": {
+    "@types/express": "^5",
+    "@types/node": "^22",
+    "typescript": "^5"
+  }
+}
