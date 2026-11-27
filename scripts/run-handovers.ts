@@ -34,7 +34,7 @@ async function runHandovers() {
 
         // Limit each run's work. Later runs continue any remaining catch-up.
         for (let step = 0; step < 100; step++) {
-            const [sources] = await db.execute<SourceShift[]>(
+            const [sources] = await lockConnection.execute<SourceShift[]>(
                 `SELECT
            DATE_FORMAT(shift_date, '%Y-%m-%d') AS date,
            shift_name AS name
@@ -61,7 +61,7 @@ async function runHandovers() {
             if (!source) break;
 
             const destination = getNextShiftKey(source);
-            const moved = await handOverPendingTasks(source, destination);
+            const moved = await handOverPendingTasks(lockConnection, source, destination);
 
             totalMoved += moved;
 

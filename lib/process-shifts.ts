@@ -20,18 +20,17 @@ export async function processShifts() {
 
     try {
         const [locks] = await lockConnection.execute<LockResult[]>(
-            "SELECT GET_LOCK('eod_task_management.handovers', 10) AS acquired",
+            "SELECT GET_LOCK('eod_task_management.handovers', 0) AS acquired",
         );
 
-        if (locks[0].acquired !== 1) {
-            throw new Error("Shift processing is busy. Please try again.");
-        }
+        if (locks[0]?.acquired === 0) return;
+        if (locks[0]?.acquired !== 1) throw new Error("Could not acquire the handover lock.");
 
         const current = getCurrentShiftKey();
 
         // Catch up one ended shift at a time.
         for (let step = 0; step < 100; step++) {
-            const [sources] = await db.execute<SourceShift[]>(
+            const [sources] = await lockConnection.execute<SourceShift[]>(
                 `SELECT
            DATE_FORMAT(shift_date, '%Y-%m-%d') AS date,
            shift_name AS name
@@ -55,10 +54,10 @@ export async function processShifts() {
             if (sources.length === 0) break;
 
             const source = sources[0];
-            await handOverPendingTasks(source, getNextShiftKey(source));
+            await handOverPendingTasks(lockConnection, source, getNextShiftKey(source));
         }
 
-        await db.execute(
+        await lockConnection.execute(
             `INSERT INTO shift_tasks (
          name, template_id, shift_date, shift_name,
          origin_shift_date, origin_shift_name

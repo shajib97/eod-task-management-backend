@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "jobs:handovers": "tsx --env-file-if-exists=.env.local scripts/run-handovers.ts",
     "jobs:reports": "tsx --env-file-if-exists=.env.local scripts/run-reports.ts",
-    "test:email": "node --env-file-if-exists=.env.local scripts/test-email.mjs"
+    "test:email": "node --env-file-if-exists=.env.local scripts/test-email.mjs",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "better-auth": "1.7.23",

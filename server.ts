@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler } from "express";
 import { toNodeHandler } from "better-auth/node";
+import { protectAuthIngress } from "./lib/auth-ingress";
 import { auth } from "./lib/auth";
 import { respondToError } from "./lib/http-errors";
 import { workspace } from "./workspace";
@@ -18,7 +19,7 @@ app.get("/health", (_request, response) => {
 });
 
 // Better Auth reads the original request body and needs the full /api/auth path.
-app.all("/api/auth/{*path}", toNodeHandler(auth));
+app.all("/api/auth/{*path}", protectAuthIngress, toNodeHandler(auth));
 app.use("/api/workspace", workspace);
 
 app.use((_request, response) => {
@@ -38,6 +39,6 @@ app.use(handleError);
 
 const host = process.env.HOST ?? "127.0.0.1";
 const port = Number(process.env.PORT ?? "4000");
-app.listen(port, host, () => {
+export const server = app.listen(port, host, () => {
     console.log(`EOD backend listening on http://${host}:${port}`);
 });

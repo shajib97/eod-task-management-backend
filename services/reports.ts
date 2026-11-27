@@ -6,7 +6,7 @@ import {
     type ShiftKey,
 } from "../lib/current-shift";
 import { getShiftReportData } from "../lib/shift-report-data";
-import { sendReportEmail } from "../lib/report-mailer";
+import { sendEmail } from "../lib/mailer";
 
 interface LockRow extends RowDataPacket {
     acquired: number | null;
@@ -59,7 +59,7 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
     }
 
     const connection = await db.getConnection();
-    const lockName = `eod.report.${date}.${name}`;
+    const lockName = "eod_task_management.report_delivery";
     let locked = false;
     let outcome = "failed";
 
@@ -146,7 +146,7 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
                         `Shift start date: ${date}`,
                         `Shift: ${name}`,
                         "Time zone: Asia/Dhaka",
-                        `Submitted by: ${access.user.name}`,
+                        `Submitted by: ${access.user.email}`,
                         "",
                         `Total tasks: ${tasks.length}`,
                         `Completed: ${completed}`,
@@ -198,12 +198,11 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
                             attempts,
                             last_attempt_at,
                             requested_by_user_id,
-                            requested_by_name,
                             requested_at
                          )
                          VALUES (
                             ?, ?, ?, ?, ?, 'Sending',
-                            1, UTC_TIMESTAMP(), ?, ?, UTC_TIMESTAMP()
+                            1, UTC_TIMESTAMP(), ?, UTC_TIMESTAMP()
                          )`,
                         [
                             date,
@@ -212,12 +211,11 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
                             subject,
                             body,
                             access.user.id,
-                            access.user.name,
                         ],
                     );
 
                     try {
-                        const result = await sendReportEmail({
+                        const result = await sendEmail({
                             recipients,
                             subject,
                             body,
@@ -248,7 +246,8 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
                         );
 
                         outcome = accepted ? "sent" : "review";
-                    } catch {
+                    } catch (error) {
+                        console.error("Manual SMTP delivery could not be confirmed:", error instanceof Error ? error.message : error);
                         await connection.execute(
                             `UPDATE shift_report_deliveries
                              SET delivery_status = 'Uncertain',
@@ -263,8 +262,8 @@ export async function sendSelectedShiftReport(formData: { get(key: string): unkn
                 }
             }
         }
-    } catch {
-        console.error("Manual shift report submission failed.");
+    } catch (error) {
+        console.error("Manual shift report submission failed:", error instanceof Error ? error.message : error);
         outcome = "failed";
     } finally {
         try {

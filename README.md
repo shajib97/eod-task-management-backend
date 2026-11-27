@@ -40,7 +40,18 @@ npm run dev
 Use `npm start` to run the service without watch mode and `npm run typecheck` to check its TypeScript.
 
 
-`better-auth-schema.sql` is the existing Better Auth schema reference. The application also uses its existing task, history, handover, approval, settings, and delivery tables.
+## MySQL setup and upgrade
+
+For a fresh MySQL 8+ database, apply [better-auth-schema.sql](better-auth-schema.sql), [001-workspace.sql](schema/001-workspace.sql), and [002-auth-rate-limit.sql](schema/002-auth-rate-limit.sql), in that order. Add the first approved administrator to `allowed_emails` using your database provisioning account. The administrator then registers and verifies their work email through the app.
+
+For an existing installation with the workspace tables, apply **only** `002-auth-rate-limit.sql` before starting the new backend. Apply it with a schema administrator or migration account. It adds a table for Better Auth's per-client rate limits, shared across backend instances. If the runtime account has table-level permissions, grant it SELECT, INSERT, UPDATE, and DELETE on `auth_rate_limit`. Existing tables and records stay in place. New connections set their SQL session time zone to UTC. Dhaka time is applied when formatting output.
+
+## Auth and network configuration
+
+- Use SMTP credentials on Express for verification links, password reset links, and report email. Users can request a reset to recover an account registered with their approved email. Keep manual database verification out of the account recovery process. For accounts verified manually before this release, confirm ownership and have the mailbox owner reset the password if there is any doubt.
+- For a public frontend, set `NODE_ENV=production` on the backend and use a shared random `AUTH_PROXY_SECRET` of at least 32 bytes on both servers. Next.js forwards the address supplied by the trusted ingress. Express accepts the forwarded address only with the shared secret. Follow the frontend README to configure the ingress header.
+- Keep Express reachable only from Next.js and authorized internal services. For containers, binding to `0.0.0.0` is for private networking. Avoid publishing the Express port to the internet. Use TLS when traffic crosses an untrusted network.
+- For loopback development with a local `BETTER_AUTH_URL`, the two services can run without the proxy secret. Local browser auth attempts share one rate-limit bucket. Rate limits remain enabled in development.
 
 ## Scheduled jobs
 
@@ -52,6 +63,10 @@ npm run jobs:reports
 npm run jobs:reports -- --send
 ```
 
-The handover job transfers pending work from ended shifts. The report job prepares the previous shift's report, subject to the stored settings. The `--send` flag also attempts queued deliveries. The web app still processes shifts when the workspace syncs and sends selected reports through the Reports page.
+The handover job transfers pending work from ended shifts. The report job prepares the previous shift's report when Automatic reports is enabled in Settings. Manual sends and the delivery worker share a delivery lock. The `--send` flag also attempts queued deliveries. The web app still processes shifts when the workspace syncs and sends selected reports through the Reports page.
 
 `npm run test:email` sends the existing dummy report to `REPORT_TEST_TO`.
+
+## Tests
+
+Run `npm run typecheck`. For the integration suite, create an empty disposable MySQL database whose name starts with `eod_` and contains `test`, then set `TEST_DATABASE_URL` to its connection URL and run `npm test`. The suite creates its fixtures and schema there, leaves them available for inspection, and uses a stub mail transport.

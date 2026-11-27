@@ -1,5 +1,4 @@
-import type { RowDataPacket } from "mysql2";
-import { db } from "./db";
+import type { PoolConnection, RowDataPacket } from "mysql2/promise";
 
 type ShiftKey = {
     date: string;
@@ -10,12 +9,10 @@ interface PendingTask extends RowDataPacket {
     id: number;
 }
 
-export async function handOverPendingTasks(from: ShiftKey, to: ShiftKey) {
+export async function handOverPendingTasks(connection: PoolConnection, from: ShiftKey, to: ShiftKey) {
     if (from.date === to.date && from.name === to.name) {
         throw new Error("Choose a different destination shift.");
     }
-
-    const connection = await db.getConnection();
 
     try {
         await connection.beginTransaction();
@@ -51,7 +48,5 @@ export async function handOverPendingTasks(from: ShiftKey, to: ShiftKey) {
     } catch (error) {
         await connection.rollback();
         throw error;
-    } finally {
-        connection.release();
     }
 }

@@ -59,7 +59,7 @@ interface TaskHistoryEntry extends RowDataPacket {
     shiftDate: string;
     shiftName: string;
     changedAtDhaka: string | null;
-    changedByName: string | null;
+    changedByEmail: string | null;
 }
 
 export async function getTaskHistory() {
@@ -70,22 +70,19 @@ export async function getTaskHistory() {
             t.name AS taskName,
             h.previous_status AS previousStatus,
             h.new_status AS newStatus,
-            h.changed_by_name AS changedByName,
+            u.email AS changedByEmail,
             DATE_FORMAT(
                 h.shift_date,
                 '%Y-%m-%d'
             ) AS shiftDate,
             h.shift_name AS shiftName,
             DATE_FORMAT(
-                CONVERT_TZ(
-                    h.changed_at,
-                    @@session.time_zone,
-                    '+06:00'
-                ),
+                DATE_ADD(h.changed_at, INTERVAL 6 HOUR),
                 '%d-%m-%Y %h:%i:%s %p'
             ) AS changedAtDhaka
          FROM task_status_history h
          JOIN shift_tasks t ON t.id = h.task_id
+         LEFT JOIN \`user\` u ON u.id = h.changed_by_user_id
          ORDER BY h.id DESC
          LIMIT 100`,
     );
@@ -97,7 +94,7 @@ interface ActivityEntry extends RowDataPacket {
     taskId: number;
     taskName: string;
     newStatus: string;
-    changedByName: string | null;
+    changedByEmail: string | null;
     changedAtDhaka: string | null;
 }
 
@@ -108,17 +105,14 @@ export async function getRecentTaskActivity() {
             h.task_id AS taskId,
             t.name AS taskName,
             h.new_status AS newStatus,
-            h.changed_by_name AS changedByName,
+            u.email AS changedByEmail,
             DATE_FORMAT(
-                CONVERT_TZ(
-                    h.changed_at,
-                    @@session.time_zone,
-                    '+06:00'
-                ),
+                DATE_ADD(h.changed_at, INTERVAL 6 HOUR),
                 '%d-%m-%Y %h:%i:%s %p'
             ) AS changedAtDhaka
          FROM task_status_history h
          JOIN shift_tasks t ON t.id = h.task_id
+         LEFT JOIN \`user\` u ON u.id = h.changed_by_user_id
          ORDER BY h.id DESC
          LIMIT 3`,
     );

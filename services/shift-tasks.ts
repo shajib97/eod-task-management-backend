@@ -6,10 +6,10 @@ import { db } from "../lib/db";
 
 export async function addTask(formData: { get(key: string): unknown }) {
     const value = formData.get("name");
-    if (typeof value !== "string") return;
+    if (typeof value !== "string") return { status: "invalid" } as const;
 
     const name = value.trim();
-    if (!name || name.length > 120) return;
+    if (!name || name.length > 120) return { status: "invalid" } as const;
 
     const shift = getCurrentShiftKey();
 
@@ -89,10 +89,9 @@ export async function updateTaskStatus(formData: { get(key: string): unknown }, 
                     new_status,
                     shift_date,
                     shift_name,
-                    changed_by_user_id,
-                    changed_by_name
+                    changed_by_user_id
                  )
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     id,
                     task.status,
@@ -100,7 +99,6 @@ export async function updateTaskStatus(formData: { get(key: string): unknown }, 
                     shift.date,
                     shift.name,
                     access.user.id,
-                    Array.from(access.user.name).slice(0, 120).join(""),
                 ]
             );
         }

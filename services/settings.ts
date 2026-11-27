@@ -2,6 +2,11 @@ import { db } from "../lib/db";
 
 export async function saveEmailReportSettings(formData: { get(key: string): unknown }) {
     const rawRecipients = formData.get("recipientEmails");
+    const rawEnabled = formData.get("automaticReports");
+    if (rawEnabled !== null && rawEnabled !== "on" && rawEnabled !== "off") {
+        return { status: "invalid" } as const;
+    }
+    const enabled = rawEnabled === null ? null : rawEnabled === "on";
 
     if (
         typeof rawRecipients !== "string" ||
@@ -39,13 +44,12 @@ export async function saveEmailReportSettings(formData: { get(key: string): unkn
             enabled,
             recipient_emails
          )
-         VALUES (1, FALSE, ?)
+         VALUES (1, COALESCE(?, FALSE), ?)
          ON DUPLICATE KEY UPDATE
-            enabled = FALSE,
+            enabled = COALESCE(?, enabled),
             recipient_emails = VALUES(recipient_emails)`,
-        [recipients.join(", ")],
+        [enabled, recipients.join(", "), enabled],
     );
-
 
     return { status: "saved" } as const;
 }

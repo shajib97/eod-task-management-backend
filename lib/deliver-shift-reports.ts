@@ -1,6 +1,6 @@
 import type { RowDataPacket } from "mysql2/promise";
 import { db } from "./db";
-import { sendReportEmail } from "./report-mailer";
+import { sendEmail } from "./mailer";
 
 interface LockRow extends RowDataPacket {
     acquired: number | null;
@@ -91,7 +91,7 @@ export async function deliverShiftReports() {
             let result;
 
             try {
-                result = await sendReportEmail({
+                result = await sendEmail({
                     recipients: report.recipient_emails
                         .split(",")
                         .map((email) => email.trim())

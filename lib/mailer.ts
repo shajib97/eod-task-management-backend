@@ -1,16 +1,16 @@
 import nodemailer from "nodemailer";
 
-interface ReportEmail {
+interface MailMessage {
     recipients: string[];
     subject: string;
     body: string;
 }
 
-export async function sendReportEmail({
+export async function sendEmail({
     recipients,
     subject,
     body,
-}: ReportEmail) {
+}: MailMessage) {
     const user = process.env.SMTP_USER;
     const password = process.env.SMTP_PASSWORD;
 
@@ -19,7 +19,7 @@ export async function sendReportEmail({
     }
 
     if (recipients.length === 0) {
-        throw new Error("No report recipients configured.");
+        throw new Error("No email recipients configured.");
     }
 
     const transporter = nodemailer.createTransport({

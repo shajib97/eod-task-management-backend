@@ -8,3 +8,9 @@ export const db = createPool({
     database: process.env.DB_NAME,
     timezone: "Z",
 });
+// The driver queues this before the first statement on each new connection.
+db.pool.on("connection", (connection) => {
+    connection.query("SET time_zone = '+00:00'", (error) => {
+        if (error) connection.destroy();
+    });
+});

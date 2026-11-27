@@ -9,7 +9,7 @@ interface ReportDeliveryRow extends RowDataPacket {
     | "Sent"
     | "Failed"
     | "Uncertain";
-    requestedByName: string | null;
+    requestedByEmail: string | null;
     requestedAtDhaka: string | null;
     sentAtDhaka: string | null;
     recipientEmails: string;
@@ -22,7 +22,7 @@ export async function getReportDeliveryStatus(shift: ShiftKey) {
     const [rows] = await db.execute<ReportDeliveryRow[]>(
         `SELECT
             delivery_status AS deliveryStatus,
-            requested_by_name AS requestedByName,
+            u.email AS requestedByEmail,
             recipient_emails AS recipientEmails,
             report_subject AS reportSubject,
             report_body AS reportBody,
@@ -34,7 +34,8 @@ export async function getReportDeliveryStatus(shift: ShiftKey) {
                 DATE_ADD(sent_at, INTERVAL 6 HOUR),
                 '%d-%m-%Y %h:%i:%s %p'
             ) AS sentAtDhaka
-         FROM shift_report_deliveries
+         FROM shift_report_deliveries d
+         LEFT JOIN \`user\` u ON u.id = d.requested_by_user_id
          WHERE shift_date = ?
            AND shift_name = ?
          LIMIT 1`,
